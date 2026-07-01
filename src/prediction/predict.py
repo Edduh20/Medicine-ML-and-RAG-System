@@ -18,7 +18,7 @@ workout_df = pd.read_csv("data/processed/workout/workout_df.csv", index_col=[0, 
 symptom_columns = training_df.drop(columns=["prognosis"]).columns
 
 def predict(symptoms: str) -> dict:
-    symptoms_list = [s.strip() for s in symptoms.split(",")]
+    symptoms_list = [s.strip().lower().replace(" ", "_") for s in symptoms.split(",")]
     input_vector = np.zeros(len(symptom_columns))
     for symptom in symptoms_list:
         index = symptom_columns.get_loc(symptom)
