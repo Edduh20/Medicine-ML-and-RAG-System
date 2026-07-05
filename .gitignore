@@ -4,3 +4,4 @@ data/processed/knowledge_base/
 artifacts/faiss_index/
 models/
 logs/
+.idea/
