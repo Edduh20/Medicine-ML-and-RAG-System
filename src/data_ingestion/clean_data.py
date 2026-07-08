@@ -1,6 +1,17 @@
 import os
 
 def clean_text(text: str) -> str:
+    key_facts_index = text.lower().find("key facts")
+    if key_facts_index != -1:
+        text = text[key_facts_index:]
+
+    footer_markers = ["Related\n", "Regions\nAfrica", "Policies\nCybersecurity", "© 2026 WHO", "References\n", "\n(1) ","\n1An "]
+    for marker in footer_markers:
+        marker_index = text.lower().find(marker.lower())
+        if marker_index != -1:
+            text = text[:marker_index]
+            break
+
     lines = text.split("\n")
     cleaned = []
 

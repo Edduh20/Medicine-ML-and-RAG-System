@@ -5,3 +5,4 @@ artifacts/faiss_index/
 models/
 logs/
 .idea/
+.env
