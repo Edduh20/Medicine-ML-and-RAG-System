@@ -1,10 +1,5 @@
-"""
-Vector Store
-------------
-Build, save, and load a FAISS vector index from document chunks.
-"""
 import os
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 from src.utils.logger import logger
 
 FAISS_INDEX_PATH = "artifacts/faiss_index"

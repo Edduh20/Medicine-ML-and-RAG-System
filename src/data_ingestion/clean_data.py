@@ -45,7 +45,7 @@ def clean_text(text: str) -> str:
 
 def run_cleaning():
     files = os.listdir("data/raw/who_fact_sheets/")
-    os.makedirs("data/processed/who_fact_sheets", exist_ok=True)
+    os.makedirs("data/processed/knowledge_base", exist_ok=True)
     for filename in files:
         if filename.endswith(".txt"):
             raw_path = f"data/raw/who_fact_sheets/{filename}"
@@ -55,7 +55,7 @@ def run_cleaning():
 
             cleaned = clean_text(text)
 
-            processed_path = f"data/processed/who_fact_sheets/{filename}"
+            processed_path = f"data/processed/knowledge_base/{filename}"
             with open(processed_path, "w", encoding="utf-8") as f:
                 f.write(cleaned)
 

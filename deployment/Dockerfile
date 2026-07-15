@@ -1,8 +1,10 @@
-FROM python:3.10-slim
+FROM python:3.11
 
-WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
+RUN python -m src.data_ingestion.scrapper_who
+RUN python -m src.data_ingestion.clean_data
+RUN python -m src.rag.pipeline build
 
 COPY . .
 

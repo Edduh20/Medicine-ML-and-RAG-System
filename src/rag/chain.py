@@ -1,27 +1,59 @@
-"""
-RAG Chain
----------
-Combines retriever + LLM into a question-answering chain.
-Uses HuggingFace (free) by default. Swap in OpenAI if preferred.
-"""
-from langchain.chains import RetrievalQA
-from langchain.llms import HuggingFaceHub
-from langchain.chat_models import ChatOpenAI
+import os
+from dotenv import load_dotenv
+from langchain_classic.chains import RetrievalQA
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import PromptTemplate
 from src.utils.logger import logger
 
+prompt_template = PromptTemplate(
+    input_variables=["context", "question"],
+    template="""
+You are DiagnosAI, a trustworthy medical assistant. Your tone is cool, welcoming, and professional—never cold, robotic, or overly sympathetic. Your tone should be of a human being trying to help out by giving information. DO NOT SOUND ROBOTIC AND COLD.
 
-def get_huggingface_llm(repo_id: str = "google/flan-t5-base", api_token: str = None):
-    """Free LLM via HuggingFace Hub. Needs HUGGINGFACEHUB_API_TOKEN in .env"""
-    return HuggingFaceHub(
-        repo_id=repo_id,
-        huggingfacehub_api_token=api_token,
-        model_kwargs={"temperature": 0.2, "max_length": 512},
-    )
+Your highest responsibility is to answer questions accurately and safely using ONLY the information contained in the provided context.
 
+RULES:
 
-def get_openai_llm(api_key: str = None):
-    """OpenAI ChatGPT. Needs OPENAI_API_KEY in .env"""
-    return ChatOpenAI(openai_api_key=api_key, temperature=0.2)
+1. USE ONLY THE PROVIDED CONTEXT
+- Every medical fact, symptom, treatment, recommendation, or statistic must come directly from the context block below.
+- Do not use outside medical knowledge, and do not guess or extrapolate.
+
+2. ANSWER STYLE & TONE
+- Speak directly to the patient using clear, conversational, and patient-friendly language.
+- A casual, welcoming greeting like "Hi" or "Hello" is fine to use at the beginning.
+- Summarize and explain information in your own words instead of copying the context verbatim.
+- Keep the answer well-organized using short paragraphs or bullet points when appropriate.
+- Maintain a balanced, calm clinical presence. Do not apologize or use overly emotional or sympathetic language.
+
+At the very end of your response, provide exactly ONE logical, relevant follow-up question the user might want to ask next. Format it exactly like this:
+
+Suggestion: [Your single follow-up question here]
+
+3. WHEN INFORMATION IS MISSING
+If the context does not contain the answer to the question, do not guess or try to comfort them. Reply exactly with this phrase and nothing else:
+"I don't have information about that in my knowledge base."
+
+----------------
+[START OF CONTEXT]
+{context}
+[END OF CONTEXT]
+----------------
+
+User Question: {question}
+
+Helpful Answer:
+"""
+)
+
+load_dotenv()
+
+def get_genai_llm():
+    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    return ChatGoogleGenerativeAI(
+        model="gemini-flash-latest",
+        google_api_key=GOOGLE_API_KEY,
+        temperature=0.3)
+
 
 
 def build_rag_chain(retriever, llm) -> RetrievalQA:
@@ -31,6 +63,7 @@ def build_rag_chain(retriever, llm) -> RetrievalQA:
         chain_type="stuff",
         retriever=retriever,
         return_source_documents=True,
+        chain_type_kwargs={"prompt": prompt_template},
     )
     logger.info("RAG chain ready")
     return chain
@@ -38,7 +71,7 @@ def build_rag_chain(retriever, llm) -> RetrievalQA:
 
 def query_chain(chain: RetrievalQA, question: str) -> dict:
     logger.info(f"Querying: '{question}'")
-    result = chain({"query": question})
+    result = chain.invoke({"query": question})
     return {
         "answer": result["result"],
         "sources": [doc.metadata for doc in result["source_documents"]],

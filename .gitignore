@@ -1,8 +1,7 @@
 data/raw/
-data/processed/who_fact_sheets/
-data/processed/knowledge_base/
-artifacts/faiss_index/
-models/
 logs/
 .idea/
 .env
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

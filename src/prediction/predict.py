@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import ast
 from src.utils.helpers import load_object
-from src.utils.logger import logger
 
 model = load_object("models/Random-Forest-Model.joblib")
 le = load_object("models/Label-Encoder.joblib")
@@ -19,6 +18,7 @@ symptom_columns = training_df.drop(columns=["prognosis"]).columns
 
 def predict(symptoms: str) -> dict:
     symptoms_list = [s.strip().lower().replace(" ", "_") for s in symptoms.split(",")]
+    symptoms_list = [s.replace("__", "_") for s in symptoms_list]
     input_vector = np.zeros(len(symptom_columns))
     for symptom in symptoms_list:
         index = symptom_columns.get_loc(symptom)
@@ -28,12 +28,12 @@ def predict(symptoms: str) -> dict:
     prediction = model.predict(input_df)[0]
     disease = le.classes_[prediction]
     severity_score = symptoms_severity_df[symptoms_severity_df["Symptom"].isin(symptoms_list)]["weight"].sum()
-    diets = diet_df[diet_df["Disease"] == disease]["Diet"].values[0]
-    workouts = workout_df[workout_df["disease"] == disease]["workout"].tolist()
-    precautions = precautions_df[precautions_df["Disease"] == disease][
+    diets = diet_df[diet_df["Disease"].str.strip().str.lower() == disease.strip().lower()]["Diet"].values[0]
+    workouts = workout_df[workout_df["disease"].str.strip().str.lower() == disease.strip().lower()]["workout"].tolist()
+    precautions = precautions_df[precautions_df["Disease"].str.strip().str.lower() == disease.strip().lower()][
         ["Precaution_1", "Precaution_2", "Precaution_3", "Precaution_4"]].values[0]
-    medications = medications_df[medications_df["Disease"] == disease]["Medication"].values[0]
-    description = description_df[description_df["Disease"] == disease]["Description"].values[0]
+    medications = medications_df[medications_df["Disease"].str.strip().str.lower() == disease.strip().lower()]["Medication"].values[0]
+    description = description_df[description_df["Disease"].str.strip().str.lower() == disease.strip().lower()]["Description"].values[0]
 
     medications = ast.literal_eval(medications)
     diets = ast.literal_eval(diets)
