@@ -1,6 +1,8 @@
 import streamlit as st
 import requests
 
+API_URL = "https://medicine-ml-and-rag-system.onrender.com"
+
 st.set_page_config(page_title="Medicine Recommendation System", layout="wide")
 st.title("🩺 DiagnosAI")
 st.markdown(
@@ -58,7 +60,7 @@ with tab1:
         else:
             symptoms = ",".join(select_symptoms)
             response = requests.post(
-                "http://127.0.0.1:8000/predict",
+                f"{API_URL}/predict",
                 json={"symptoms": symptoms}
             )
         result = response.json()
@@ -130,7 +132,7 @@ with tab2:
             with st.spinner("Thinking..."):
                 try:
                     response = requests.post(
-                        "http://127.0.0.1:8000/answer_question",
+                        "f{API_URL}/answer_question",
                         json={"question": prompt}
                     )
                     result = response.json()
