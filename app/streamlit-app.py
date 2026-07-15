@@ -132,7 +132,7 @@ with tab2:
             with st.spinner("Thinking..."):
                 try:
                     response = requests.post(
-                        "f{API_URL}/answer_question",
+                        f"{API_URL}/answer_question",
                         json={"question": prompt}
                     )
                     result = response.json()
