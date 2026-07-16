@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-API_URL = "https//:medicine-ml-and-rag-system-production.up.railway.app"
+API_URL = "https://medicine-ml-and-rag-system-production.up.railway.app"
 
 st.set_page_config(page_title="Medicine Recommendation System", layout="wide")
 st.title("🩺 DiagnosAI")
