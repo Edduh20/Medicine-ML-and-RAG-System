@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from src.rag.document_loader import load_documents
 from src.rag.chunk import chunk_documents
 from src.rag.embeddings import get_huggingface_embeddings
-from src.rag.vector_store import build_vector_store, save_vector_store, load_vector_store
+from src.rag.vector_store import build_vector_store, load_vector_store
 from src.rag.retriever import get_retriever
 from src.rag.chain import get_genai_llm, build_rag_chain, query_chain
 from src.utils.logger import logger
@@ -19,15 +19,14 @@ def build_index(doc_path: str):
     documents = load_documents(doc_path)
     chunks = chunk_documents(documents)
     embeddings = get_huggingface_embeddings()
-    vector_store = build_vector_store(chunks, embeddings)
-    save_vector_store(vector_store)
-    logger.info("Index built and saved.")
+    build_vector_store(chunks, embeddings)
+    logger.info("Knowledge base indexed in Qdrant.")
 
 
 def answer_question(question: str) -> dict:
     global _cache
     cleaned_question = question.lower().strip()
-    if cleaned_question in _cache:
+    if cleaned_question in _cache["answers"]:
         logger.info(f"Cache Found. Answer question: {cleaned_question}")
         return _cache["answers"][cleaned_question]
 

@@ -1,23 +1,28 @@
 import os
-from langchain_community.vectorstores import FAISS
+from langchain_qdrant import QdrantVectorStore
+from qdrant_client import QdrantClient
 from src.utils.logger import logger
 
-FAISS_INDEX_PATH = "artifacts/faiss_index"
+COLLECTION_NAME = "diagnosai_knowledge_base"
 
+def get_qdrant_client():
+    return QdrantClient(url=os.getenv("QDRANT_URL"),
+                        api_key=os.getenv("QDRANT_API_KEY"))
 
-def build_vector_store(chunks: list, embeddings) -> FAISS:
-    logger.info("Building FAISS vector store...")
-    vector_store = FAISS.from_documents(chunks, embeddings)
+client = get_qdrant_client()
+
+def build_vector_store(chunks: list, embeddings) -> QdrantVectorStore:
+    logger.info("Building Qdrant vector store...")
+    vector_store = QdrantVectorStore.from_documents(chunks,
+                                                    embeddings,
+                                                    client=client,
+                                                    collection_name=COLLECTION_NAME)
     logger.info(f"Vector store built with {len(chunks)} chunks")
     return vector_store
 
 
-def save_vector_store(vector_store: FAISS, path: str = FAISS_INDEX_PATH):
-    os.makedirs(path, exist_ok=True)
-    vector_store.save_local(path)
-    logger.info(f"Vector store saved to {path}")
-
-
-def load_vector_store(embeddings, path: str = FAISS_INDEX_PATH) -> FAISS:
-    logger.info(f"Loading vector store from {path}")
-    return FAISS.load_local(path, embeddings, allow_dangerous_deserialization=True)
+def load_vector_store(embeddings) -> QdrantVectorStore:
+    logger.info(f"Loading Qdrant vector store...")
+    return QdrantVectorStore.from_existing_collection(embeddings=embeddings,
+                                                      client=client,
+                                                      collection_name=COLLECTION_NAME)
