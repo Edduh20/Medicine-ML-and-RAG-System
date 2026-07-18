@@ -16,8 +16,6 @@ Requests==2.34.2
 scikit_learn==1.9.0
 setuptools==83.0.0
 streamlit==1.59.1
-xgboost==3.3.0
 uvicorn==0.51.0
-faiss-cpu==1.14.3
 langchain-qdrant==1.1.0
 qdrant-client==1.18.0
