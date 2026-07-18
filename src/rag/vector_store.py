@@ -9,13 +9,14 @@ def get_qdrant_client():
     return QdrantClient(url=os.getenv("QDRANT_URL"),
                         api_key=os.getenv("QDRANT_API_KEY"))
 
-client = get_qdrant_client()
 
+client = get_qdrant_client()
 def build_vector_store(chunks: list, embeddings) -> QdrantVectorStore:
     logger.info("Building Qdrant vector store...")
     vector_store = QdrantVectorStore.from_documents(chunks,
                                                     embeddings,
-                                                    client=client,
+                                                    url=os.getenv("QDRANT_URL"),
+                                                    api_key=os.getenv("QDRANT_API_KEY"),
                                                     collection_name=COLLECTION_NAME)
     logger.info(f"Vector store built with {len(chunks)} chunks")
     return vector_store
@@ -23,6 +24,6 @@ def build_vector_store(chunks: list, embeddings) -> QdrantVectorStore:
 
 def load_vector_store(embeddings) -> QdrantVectorStore:
     logger.info(f"Loading Qdrant vector store...")
-    return QdrantVectorStore.from_existing_collection(embeddings=embeddings,
+    return QdrantVectorStore.from_existing_collection(embedding=embeddings,
                                                       client=client,
                                                       collection_name=COLLECTION_NAME)

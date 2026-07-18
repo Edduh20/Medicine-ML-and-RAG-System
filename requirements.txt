@@ -22,3 +22,5 @@ uvicorn==0.51.0
 faiss-cpu==1.14.3
 torch
 sentence-transformers==5.6.0
+langchain-qdrant==1.1.0
+qdrant-client==1.18.0
