@@ -2,6 +2,9 @@ import os
 from dotenv import load_dotenv
 from langchain_classic.chains import RetrievalQA
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
+from langchain_cohere import ChatCohere
+from langchain_mistralai import ChatMistralAI
 from langchain_core.prompts import PromptTemplate
 from src.utils.logger import logger
 
@@ -47,12 +50,33 @@ Helpful Answer:
 
 load_dotenv()
 
-def get_genai_llm():
-    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-    return ChatGoogleGenerativeAI(
-        model="gemini-flash-latest",
-        google_api_key=GOOGLE_API_KEY,
-        temperature=0.3)
+def get_llms(provider):
+    if provider == "gemini":
+        return ChatGoogleGenerativeAI(
+            model="gemini-flash-latest",
+            google_api_key=os.getenv("GOOGLE_API_KEY"),
+            temperature=0.3)
+
+    elif provider == "groq":
+        return ChatGroq(
+            model="llama-3.3-70b-versatile",
+            groq_api_key=os.getenv("GROQ_API_KEY"),
+            temperature=0.3)
+
+    elif provider == "cohere":
+        return ChatCohere(
+            model="command-a-03-2025",
+            cohere_api_key=os.getenv("COHERE_API_KEY"),
+            temperature=0.3)
+
+    elif provider == "mistral":
+        return ChatMistralAI(
+            model="mistral-large-latest",
+            mistral_api_key=os.getenv("MISTRAL_API_KEY"),
+            temperature=0.3)
+
+    else:
+        raise ValueError(f"Unknown provider: {provider}")
 
 
 
