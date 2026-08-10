@@ -97,22 +97,16 @@ with tab2:
         st.session_state.messages = []
     if "user_query" not in st.session_state:
         st.session_state.user_query = ""
-    if "shown_suggestion" not in st.session_state:
-        st.session_state.shown_suggestion = []
+    if "shown_suggestions" not in st.session_state:
+        st.session_state.shown_suggestions = []
     if "active_suggestion" not in st.session_state:
         st.session_state.active_suggestion = None
-
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.write(message["content"])
 
     if st.session_state.active_suggestion:
-        if suggested_question not in st.session_state.shown_suggestions:
-            st.session_state.shown_suggestions.append(suggested_question)
-            st.session_state.active_suggestion = suggested_question
-        else:
-            st.session_state.active_suggestion = None
         st.write("---")
         if st.button(f"💬 Ask: {st.session_state.active_suggestion}"):
             st.session_state.user_query = st.session_state.active_suggestion
@@ -123,14 +117,9 @@ with tab2:
 
     prompt = user_input or (st.session_state.user_query if st.session_state.user_query else None)
 
-
     if st.session_state.user_query:
         st.session_state.user_query = ""
 
-
-    if "last_suggestion" not in st.session_state:
-        st.session_state.last_suggestion = None
-        
     affirmative = ["yes", "yeah", "sure", "ok", "okay", "yep", "go ahead", "y"]
 
     if prompt and prompt.lower().strip() in affirmative and st.session_state.active_suggestion:
@@ -163,13 +152,12 @@ with tab2:
 
                         st.session_state.messages.append({"role": "assistant", "content": main_answer})
 
-                        st.session_state.active_suggestion = suggested_question
                         if suggested_question not in st.session_state.shown_suggestions:
                             st.session_state.shown_suggestions.append(suggested_question)
-                            st.write("---")
-                            if st.button(f"💬 {suggested_question}"):
-                                st.session_state.user_query = suggested_question
-                                st.rerun()
+                            st.session_state.active_suggestion = suggested_question
+                        else:
+                            st.session_state.active_suggestion = None
+
                     else:
                         st.write(response_text)
                         st.session_state.messages.append({"role": "assistant", "content": response_text})
