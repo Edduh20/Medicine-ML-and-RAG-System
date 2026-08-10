@@ -1,11 +1,10 @@
 import os
-from langchain_huggingface import HuggingFaceEndpointEmbeddings
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from src.utils.logger import logger
 
 
 def get_huggingface_embeddings(model: str = "sentence-transformers/all-MiniLM-L6-v2"):
-    logger.info(f"Loading HuggingFace embeddings: {model}")
-    return HuggingFaceEndpointEmbeddings(model=model,
-                                         huggingfacehub_api_token=os.getenv("HF_TOKEN"))
+    logger.info(f"Loading FastEmbed embeddings: {model}")
+    return FastEmbedEmbeddings(model_name=model)
 
 
