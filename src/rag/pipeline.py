@@ -9,6 +9,11 @@ from src.rag.chain import get_llms, build_rag_chain, query_chain
 from src.utils.logger import logger
 
 load_dotenv()
+logger.info("Initializing global embeddings and connecting to Qdrant vector store...")
+_embeddings = get_huggingface_embeddings()
+_vector_store = load_vector_store(_embeddings)
+_retriever = get_retriever(_vector_store, k=4)
+logger.info("Vector store and retriever ready for requests.")
 
 _cache = {
     "chain":None,
