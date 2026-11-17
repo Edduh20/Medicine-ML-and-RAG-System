@@ -6,6 +6,7 @@ from langchain_groq import ChatGroq
 from langchain_cohere import ChatCohere
 from langchain_mistralai import ChatMistralAI
 from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 from src.utils.logger import logger
 
 prompt_template = PromptTemplate(
@@ -44,9 +45,11 @@ If providing a suggestion, format it exactly like this:
 
 Suggestion: [Your single follow-up question here]
 
+
 3. WHEN INFORMATION IS MISSING
-If the context does not contain the answer to the question, do not guess or try to comfort them. Reply exactly with this phrase and nothing else:
-"I don't have information about that in my knowledge base."
+- If the context contains information about SOME but not ALL parts of the question, answer the parts you CAN cover from the context. For specific parts with no information, state: "I don't have information about [specific topic] in my knowledge base."
+- If the context contains NO relevant information at all, reply exactly with: "I don't have information about that in my knowledge base."
+- Do not guess, extrapolate, or use outside medical knowledge for any part.   
 
 ----------------
 [START OF CONTEXT]
@@ -67,25 +70,33 @@ def get_llms(provider):
         return ChatGoogleGenerativeAI(
             model="gemini-flash-latest",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
-            temperature=0.3)
+            temperature=0.3,
+            timeout=30,
+            max_retries=1)
 
     elif provider == "groq":
         return ChatGroq(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             groq_api_key=os.getenv("GROQ_API_KEY"),
-            temperature=0.3)
+            temperature=0.3,
+            timeout=30,
+            max_retries=1)
 
     elif provider == "cohere":
         return ChatCohere(
             model="command-a-03-2025",
             cohere_api_key=os.getenv("COHERE_API_KEY"),
-            temperature=0.3)
+            temperature=0.3,
+            timeout=30,
+            max_retries=1)
 
     elif provider == "mistral":
         return ChatMistralAI(
             model="mistral-large-latest",
             mistral_api_key=os.getenv("MISTRAL_API_KEY"),
-            temperature=0.3)
+            temperature=0.3,
+            timeout=30,
+            max_retries=1)
 
     else:
         raise ValueError(f"Unknown provider: {provider}")
@@ -112,3 +123,25 @@ def query_chain(chain: RetrievalQA, question: str) -> dict:
         "answer": result["result"],
         "sources": [doc.metadata for doc in result["source_documents"]],
     }
+
+
+def build_rag_chain_with_context(llm, context: str, source_docs: list = None):
+    chain = prompt_template | llm | StrOutputParser()
+    return _ContextChain(chain, context, source_docs or [])
+
+
+class _ContextChain:
+    def __init__(self, chain, context, source_docs):
+        self.chain = chain
+        self.context = context
+        self.source_docs = source_docs
+
+    def invoke(self, inputs: dict) -> dict:
+        result = self.chain.invoke({
+            "context": self.context,
+            "question": inputs["question"],
+        })
+        return {
+            "result": result,
+            "source_documents": self.source_docs,
+        }   

@@ -1,30 +1,44 @@
 from dotenv import load_dotenv
-
 from src.rag.document_loader import load_documents
 from src.rag.chunk import chunk_documents
 from src.rag.embeddings import get_huggingface_embeddings
 from src.rag.vector_store import build_vector_store, load_vector_store
 from src.rag.retriever import get_retriever
-from src.rag.chain import get_llms, build_rag_chain, query_chain
+from src.rag.chain import get_llms, build_rag_chain_with_context
 from src.utils.logger import logger
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+_decompose_prompt = ChatPromptTemplate.from_template(
+    "Split the following question into individual sub-questions, one per distinct topic or disease. "
+    "Return them as a comma-separated list. If there is only one topic, return it as-is.\n\n"
+    "Question: {question}\n\nSub-questions:"
+)
+
+
+def decompose(question: str, llm) -> list[str]:
+    chain = _decompose_prompt | llm | StrOutputParser()
+    result = chain.invoke({"question": question})
+    return [q.strip() for q in result.split(",")]
+
 
 load_dotenv()
 logger.info("Initializing global embeddings and connecting to Qdrant vector store...")
 _embeddings = get_huggingface_embeddings()
 _vector_store = load_vector_store(_embeddings)
-_retriever = get_retriever(_vector_store, k=4)
+_retriever = get_retriever(_vector_store, k=8)
 logger.info("Vector store and retriever ready for requests.")
 
 _cache = {
-    "chain":None,
-    "answers":{}
+    "chain": None,
+    "answers": {}
 }
+
 
 def build_index(doc_path: str):
     documents = load_documents(doc_path)
     chunks = chunk_documents(documents)
-    embeddings = get_huggingface_embeddings()
-    build_vector_store(chunks, embeddings)
+    build_vector_store(chunks, _embeddings)
     logger.info("Knowledge base indexed in Qdrant.")
 
 
@@ -34,34 +48,46 @@ def answer_question(question: str) -> dict:
     cleaned_question = question.lower().strip()
 
     if cleaned_question in _cache["answers"]:
-        logger.info(f"Cache Found. Answer question: {cleaned_question}")
         return _cache["answers"][cleaned_question]
-
-    embeddings = get_huggingface_embeddings()
-    vector_store = load_vector_store(embeddings)
-    retriever = get_retriever(vector_store, k=4)
 
     providers = ["gemini", "groq", "cohere", "mistral"]
 
     for provider in providers:
         try:
             logger.info(f"Trying {provider}...")
-
             llm = get_llms(provider)
-            chain = build_rag_chain(retriever, llm)
 
-            response = query_chain(chain, question)
+            sub_questions = decompose(question, llm)
+            logger.info(f"Decomposed into: {sub_questions}")
+
+            all_docs = []
+            for sub_q in sub_questions:
+                docs = _retriever.invoke(sub_q)
+                all_docs.extend(docs)
+
+            seen = set()
+            unique_docs = []
+            for doc in all_docs:
+                key = doc.page_content[:150]
+                if key not in seen:
+                    seen.add(key)
+                    unique_docs.append(doc)
+
+            context = "\n\n".join(doc.page_content for doc in unique_docs[:30])
+
+            chain = build_rag_chain_with_context(llm, context, unique_docs[:30])
+            result = chain.invoke({"question": question})
+
+            response = {
+                "answer": result["result"],
+                "sources": [doc.metadata for doc in result["source_documents"]],
+            }
 
             _cache["chain"] = chain
             _cache["answers"][cleaned_question] = response
-
             return response
 
         except Exception as e:
-            if "429" in str(e):
-                logger.warning(f"{provider} rate limit reached. Trying next provider...")
-                continue
-
             logger.warning(f"{provider} failed: {e}")
             continue
 
@@ -69,5 +95,4 @@ def answer_question(question: str) -> dict:
 
 
 if __name__ == "__main__":
-
-    pass
+    pass   
