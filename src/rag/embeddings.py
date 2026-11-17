@@ -1,12 +1,10 @@
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from src.utils.logger import logger
 
 
-def get_huggingface_embeddings(model: str = "sentence-transformers/all-MiniLM-L6-v2"):
-    logger.info(f"Loading HuggingFace embeddings (ONNX): {model}")
-    return HuggingFaceEmbeddings(
+def get_embeddings(model: str = "sentence-transformers/all-MiniLM-L6-v2"):
+    logger.info(f"Loading FastEmbed embeddings (ONNX, no torch): {model}")
+    return FastEmbedEmbeddings(
         model_name=model,
-        model_kwargs={"backend": "onnx", "device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True})
-
-
+        cache_dir="models/fastembed_cache",
+    )

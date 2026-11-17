@@ -1,13 +1,15 @@
 from dotenv import load_dotenv
 from src.rag.document_loader import load_documents
 from src.rag.chunk import chunk_documents
-from src.rag.embeddings import get_huggingface_embeddings
+from src.rag.embeddings import get_embeddings
 from src.rag.vector_store import build_vector_store, load_vector_store
 from src.rag.retriever import get_retriever
 from src.rag.chain import get_llms, build_rag_chain_with_context
 from src.utils.logger import logger
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+
+load_dotenv()
 
 _decompose_prompt = ChatPromptTemplate.from_template(
     "Split the following question into individual sub-questions, one per distinct topic or disease. "
@@ -22,12 +24,22 @@ def decompose(question: str, llm) -> list[str]:
     return [q.strip() for q in result.split(",")]
 
 
-load_dotenv()
-logger.info("Initializing global embeddings and connecting to Qdrant vector store...")
-_embeddings = get_huggingface_embeddings()
-_vector_store = load_vector_store(_embeddings)
-_retriever = get_retriever(_vector_store, k=8)
-logger.info("Vector store and retriever ready for requests.")
+
+_state = {}
+
+def _get_embeddings():
+    if "embeddings" not in _state:
+        logger.info("Loading embeddings...")
+        _state["embeddings"] = get_embeddings() 
+    return _state["embeddings"]
+
+def _get_retriever():
+    if "retriever" not in _state:
+        logger.info("Connecting to Qdrant and building retriever...")
+        vs = load_vector_store(_get_embeddings())
+        _state["retriever"] = get_retriever(vs, k=8)
+        logger.info("Vector store and retriever ready.")
+    return _state["retriever"]
 
 _cache = {
     "chain": None,
@@ -38,7 +50,7 @@ _cache = {
 def build_index(doc_path: str):
     documents = load_documents(doc_path)
     chunks = chunk_documents(documents)
-    build_vector_store(chunks, _embeddings)
+    build_vector_store(chunks, _get_embeddings())  
     logger.info("Knowledge base indexed in Qdrant.")
 
 
@@ -62,7 +74,7 @@ def answer_question(question: str) -> dict:
 
             all_docs = []
             for sub_q in sub_questions:
-                docs = _retriever.invoke(sub_q)
+                docs = _get_retriever().invoke(sub_q)           
                 all_docs.extend(docs)
 
             seen = set()
